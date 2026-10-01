@@ -1,0 +1,1070 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLANNER</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #FAF7F2;
+            --text-color: #333333;
+            --accent-color: #8DB8B5;
+            --day-0: #F9CFB4;
+            --day-1: #ECA0A0;
+            --day-2: #F3E5AB;
+            --day-3: #F7C4D4;
+            --day-4: #C7E8CA;
+            --day-5: #8DB8B5;
+            --day-6: #EEDC9A;
+        }
+        body { background-color: var(--bg-color); color: var(--text-color); font-family: 'Plus Jakarta Sans', sans-serif; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: rgba(0,0,0,0.03); border-radius: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); border-radius: 8px; }
+        .header-bg-custom { background-color: var(--accent-color); }
+        .editable-label { cursor: pointer; border-radius: 4px; transition: all 0.2s; }
+        .editable-label:hover { background-color: rgba(0,0,0,0.05); outline: 1px dashed #cbd5e1; }
+        @media print {
+            header, #workspace-tabs-container, button, select, input, .no-print { display: none !important; }
+            body { background-color: white !important; p: 0 !important; }
+            .lg\:col-span-9 { width: 100% !important; }
+            #days-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 4px !important; }
+        }
+    </style>
+</head>
+<body class="min-h-screen p-3 md:p-6">
+    <div id="app" class="max-w-[1800px] mx-auto space-y-4">
+        
+        <!-- HEADER & GLOBAL CONTROLS -->
+        <header class="bg-white rounded-2xl p-4 shadow-sm border border-stone-200/60 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex flex-wrap items-center gap-3">
+                    <button onclick="switchTab('PLANNER')" class="header-bg-custom text-white font-extrabold text-lg px-5 py-2 rounded-xl uppercase tracking-wider shadow-sm flex items-center gap-2 hover:opacity-90 transition cursor-pointer" title="Volver al inicio / Planner General">
+                        <span id="app-logo-container" class="flex items-center justify-center w-6 h-6">
+                            <span class="text-xl leading-none">✨</span>
+                        </span>
+                        <span id="txt-app-title" class="editable-label" onclick="event.stopPropagation(); editLabel('appTitle')">PLANNER</span>
+                    </button>
+
+                    <div class="bg-stone-100 p-1 rounded-xl flex items-center gap-1 border border-stone-200 text-xs font-semibold">
+                        <button id="btn-view-weekly" onclick="setViewMode('weekly')" class="px-3 py-1.5 rounded-lg bg-white text-stone-800 shadow-xs font-bold">
+                            <span id="txt-view-weekly">Vista Semanal</span>
+                        </button>
+                        <button id="btn-view-monthly" onclick="setViewMode('monthly')" class="px-3 py-1.5 rounded-lg text-stone-500 hover:text-stone-800">
+                            <span id="txt-view-monthly">Vista Mensual</span>
+                        </button>
+                    </div>
+
+                    <div id="week-nav-container" class="flex items-center gap-2 bg-stone-50 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold text-stone-600">
+                        <button onclick="changeWeek(-1)" class="hover:bg-stone-200 p-1 rounded-md transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
+                        <span id="week-range-text" class="text-stone-800 px-1 font-bold">--</span>
+                        <button onclick="changeWeek(1)" class="hover:bg-stone-200 p-1 rounded-md transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+                        <button onclick="goToToday()" class="ml-1 bg-stone-200 hover:bg-stone-300 text-stone-700 px-2 py-1 rounded-md text-[10px] uppercase font-bold transition">
+                            <span id="txt-btn-today">HOY</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- SEARCH & UTILITIES BAR -->
+                <div class="flex flex-wrap items-center gap-2.5">
+                    <div class="relative">
+                        <input id="search-input" type="text" oninput="filterPlannerContent(this.value)" placeholder="🔍 Buscar..." class="bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:bg-white w-32 md:w-44 transition">
+                    </div>
+
+                    <button onclick="openCustomTitlesModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 p-2 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
+                        <i data-lucide="edit-3" class="w-4 h-4 text-amber-600"></i>
+                        <span id="txt-btn-edit-texts">✏️ Textos</span>
+                    </button>
+
+                    <button onclick="openThemeModal()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-3 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition">
+                        <i data-lucide="palette" class="w-4 h-4 text-amber-500"></i>
+                        <span id="txt-btn-theme">Colores</span>
+                    </button>
+
+                    <button onclick="printPlanner()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-3 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition" title="Imprimir / PDF">
+                        <i data-lucide="printer" class="w-4 h-4 text-stone-600"></i>
+                        <span id="txt-btn-print">Imprimir</span>
+                    </button>
+
+                    <button onclick="exportBackupData()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-2.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1 transition" title="Guardar Copia de Seguridad">
+                        <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i>
+                    </button>
+
+                    <label class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-2.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Cargar Copia de Seguridad">
+                        <i data-lucide="upload" class="w-4 h-4 text-blue-600"></i>
+                        <input type="file" accept=".json" onchange="importBackupData(event)" class="hidden">
+                    </label>
+
+                    <div class="flex items-center gap-1 bg-stone-50 px-2.5 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold">
+                        <i data-lucide="globe" class="w-4 h-4 text-stone-500"></i>
+                        <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-transparent text-xs font-bold text-stone-700 focus:outline-none cursor-pointer">
+                            <option value="es">ES</option>
+                            <option value="en">EN</option>
+                            <option value="fr">FR</option>
+                        </select>
+                    </div>
+
+                    <button onclick="openGcalModal()" class="bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition">
+                        <i data-lucide="calendar-sync" class="w-4 h-4 text-blue-600"></i>
+                        <span id="txt-btn-gcal">Google / iCal</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- WORKSPACE TABS BAR -->
+            <div class="flex items-center gap-2 overflow-x-auto pt-2 border-t border-stone-100" id="workspace-tabs-container"></div>
+        </header>
+
+        <!-- MAIN PLANNER WORKSPACE -->
+        <div id="planner-workspace" class="space-y-4">
+            <div id="weekly-view" class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <!-- SIDEBAR (3 cols) -->
+                <div class="lg:col-span-3 space-y-4">
+                    <div class="grid grid-cols-2 gap-2 text-center text-xs font-bold">
+                        <div class="bg-white/80 text-stone-700 p-2.5 rounded-xl border border-stone-200/80 shadow-xs">
+                            <div id="txt-week-start-label" class="text-[10px] uppercase text-stone-400 editable-label" onclick="editLabel('weekStartLabel')">SEMANA QUE EMPIEZA</div>
+                            <div id="sidebar-start-date" class="text-xs font-extrabold text-stone-800">--</div>
+                        </div>
+                        <div class="bg-white/80 text-stone-700 p-2.5 rounded-xl border border-stone-200/80 shadow-xs">
+                            <div id="txt-week-end-label" class="text-[10px] uppercase text-stone-400 editable-label" onclick="editLabel('weekEndLabel')">FINDE</div>
+                            <div id="sidebar-end-date" class="text-xs font-extrabold text-stone-800">--</div>
+                        </div>
+                    </div>
+
+                    <!-- Habits Block -->
+                    <div class="bg-white rounded-2xl p-4 shadow-xs border border-stone-200/60">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 id="txt-habits-title" class="font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center gap-1.5 editable-label" onclick="editLabel('habitsTitle')">
+                                <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i> HÁBITOS SEMANALES
+                            </h3>
+                            <span id="habits-progress-pct" class="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">0.0%</span>
+                        </div>
+                        <div class="w-full bg-stone-100 rounded-full h-2 mb-4 overflow-hidden border border-stone-200/50">
+                            <div id="habits-progress-bar" class="bg-emerald-400 h-2 rounded-full transition-all duration-300" style="width: 0%"></div>
+                        </div>
+                        <div id="habits-header-days" class="grid grid-cols-12 text-[10px] font-bold text-stone-400 mb-2 px-1 text-center"></div>
+                        <div id="habits-container" class="space-y-2 text-xs"></div>
+                        <div class="mt-3 flex gap-2">
+                            <input id="new-habit-input" type="text" class="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <button onclick="addHabit()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1 rounded-lg text-xs font-bold transition">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Weekly To-Do -->
+                    <div class="bg-white rounded-2xl p-4 shadow-xs border border-stone-200/60">
+                        <div class="flex items-center justify-between mb-3">
+                            <h3 id="txt-todo-title" class="font-bold text-xs uppercase tracking-wider text-stone-700 flex items-center gap-1.5 editable-label" onclick="editLabel('todoTitle')">
+                                <i data-lucide="list-todo" class="w-4 h-4 text-rose-400"></i> LISTA TO-DO SEMANAL
+                            </h3>
+                        </div>
+                        <div id="weekly-todo-container" class="space-y-2 max-h-[200px] overflow-y-auto pr-1"></div>
+                        <div class="mt-3 flex gap-2">
+                            <input id="new-todo-input" type="text" class="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5 focus:outline-none">
+                            <button onclick="addWeeklyTodo()" class="bg-stone-100 hover:bg-stone-200 text-stone-700 px-2.5 py-1 rounded-lg text-xs font-bold transition">+</button>
+                        </div>
+                    </div>
+
+                    <!-- Campaigns -->
+                    <div class="bg-white rounded-2xl p-4 shadow-xs border border-stone-200/60">
+                        <h3 id="txt-campaigns-title" class="font-bold text-xs uppercase tracking-wider text-stone-700 mb-3 flex items-center gap-1.5 editable-label" onclick="editLabel('campaignsTitle')">
+                            <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-500"></i> ESTADO DE CAMPAÑAS
+                        </h3>
+                        <div id="campaign-progress-container" class="space-y-3"></div>
+                    </div>
+                </div>
+
+                <!-- 7 DAYS MAIN CALENDAR GRID (9 cols) -->
+                <div class="lg:col-span-9">
+                    <div id="days-grid" class="grid grid-cols-1 md:grid-cols-7 gap-3 min-h-[600px] h-full"></div>
+                </div>
+            </div>
+
+            <div id="monthly-view" class="hidden bg-white rounded-2xl p-5 shadow-xs border border-stone-200/60 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-stone-100 pb-4">
+                    <h2 id="monthly-title" class="font-bold text-xl text-stone-800 uppercase tracking-wide">--</h2>
+                    <div class="flex gap-2">
+                        <button id="btn-prev-month" onclick="changeMonth(-1)" class="bg-stone-100 p-2 rounded-lg text-xs font-bold">◄ Anterior</button>
+                        <button id="btn-next-month" onclick="changeMonth(1)" class="bg-stone-100 p-2 rounded-lg text-xs font-bold">Siguiente ►</button>
+                    </div>
+                </div>
+                <div>
+                    <div id="monthly-day-headers" class="grid grid-cols-7 gap-1 text-center font-bold text-xs text-stone-500 mb-2"></div>
+                    <div id="monthly-calendar-grid" class="grid grid-cols-7 gap-2"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAMPAIGN WORKSPACE -->
+        <div id="campaign-workspace" class="hidden space-y-5">
+            <div id="campaign-header-card" class="bg-white rounded-2xl p-5 shadow-xs border border-stone-200/60 flex flex-wrap items-center justify-between gap-4"></div>
+            <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                <div class="lg:col-span-7 bg-white rounded-2xl p-5 shadow-xs border border-stone-200/60 space-y-4">
+                    <div class="flex items-center justify-between border-b border-stone-100 pb-3">
+                        <h3 id="txt-camp-checklist-title" class="font-bold text-base text-stone-800 editable-label" onclick="editLabel('campChecklistTitle')">CHECKLIST DE LA CAMPAÑA</h3>
+                        <span id="camp-checklist-progress" class="text-xs font-extrabold text-emerald-600 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">0%</span>
+                    </div>
+                    <div class="flex gap-2">
+                        <input id="camp-new-task-input" type="text" class="w-full text-xs bg-stone-50 border border-stone-200 rounded-lg px-3 py-2 focus:outline-none">
+                        <select id="camp-new-task-phase" class="bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-2 text-xs font-bold text-stone-700"></select>
+                        <button onclick="addCampaignTask()" class="bg-stone-900 text-white text-xs font-bold px-4 py-2 rounded-lg">+</button>
+                    </div>
+                    <div id="camp-checklist-phases-container" class="space-y-4"></div>
+                </div>
+                <div class="lg:col-span-5 space-y-5">
+                    <div class="bg-white rounded-2xl p-5 shadow-xs border border-stone-200/60 space-y-3">
+                        <h3 id="txt-camp-notes-title" class="font-bold text-stone-800 text-xs uppercase tracking-wider editable-label" onclick="editLabel('campNotesTitle')">NOTAS & BRIEFING</h3>
+                        <textarea id="camp-notes-textarea" rows="8" onchange="saveCampaignNotes()" class="w-full text-xs bg-stone-50 border border-stone-200 rounded-xl p-3 focus:outline-none focus:bg-white transition"></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ALL TITLES EDIT MODAL -->
+    <div id="modal-custom-titles" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[85vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="modal-title-custom-texts" class="font-bold text-stone-800 text-base">Personalizar Textos y Etiquetas</h3>
+                <button onclick="closeCustomTitlesModal()" class="text-stone-400">✕</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <div><label class="font-bold text-stone-700 block">Título App</label><input id="custom-title-appTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div>
+                    <label class="font-bold text-stone-700 block">Icono o Emoji del Botón (ej: ✨, 🌸, 👑, 🛍️, 📅)</label>
+                    <input id="custom-icon-emoji" type="text" placeholder="Pega un emoji o texto..." class="w-full bg-stone-50 border p-2 rounded-xl text-sm" onchange="updateCustomIconEmoji(this.value)">
+                </div>
+                <div class="bg-amber-50 p-3 rounded-xl border border-amber-200">
+                    <label class="font-bold text-amber-900 block text-xs">🖼️ O subir una Foto / Logo personalizado:</label>
+                    <input type="file" id="custom-logo-file" accept="image/*" onchange="uploadCustomLogo(event)" class="text-xs text-stone-600 mt-1 file:mr-2 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-800 file:text-white cursor-pointer">
+                    <button type="button" onclick="removeCustomLogo()" class="text-[10px] text-amber-800 underline font-bold mt-1 block">Restablecer icono por defecto</button>
+                </div>
+                <div><label class="font-bold text-stone-700 block">Vista Semanal</label><input id="custom-title-viewWeekly" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Vista Mensual</label><input id="custom-title-viewMonthly" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Botón Hoy</label><input id="custom-title-btnToday" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Pestaña General</label><input id="custom-title-plannerTab" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Pestaña Nueva Campaña</label><input id="custom-title-newCampTab" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Título Hábitos</label><input id="custom-title-habitsTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Título To-Do Semanal</label><input id="custom-title-todoTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Título Estado de Campañas</label><input id="custom-title-campaignsTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Etiqueta Eventos Diarios</label><input id="custom-title-eventsHeader" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Etiqueta Tareas Diarias</label><input id="custom-title-tasksHeader" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Etiqueta Enfoque del Día</label><input id="custom-title-todaysFocus" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Título Checklist Campaña</label><input id="custom-title-campChecklistTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Título Notas Campaña</label><input id="custom-title-campNotesTitle" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+                <div><label class="font-bold text-stone-700 block">Botón Volver a Planner</label><input id="custom-title-backToPlannerBtn" type="text" class="w-full bg-stone-50 border p-2 rounded-xl"></div>
+            </div>
+            <button id="btn-save-custom-titles" onclick="saveAllCustomTitles()" class="w-full bg-stone-900 text-white py-2.5 rounded-xl text-xs font-bold">Guardar Cambios</button>
+        </div>
+    </div>
+
+    <!-- CALENDAR SYNC MODAL ENHANCED -->
+    <div id="modal-gcal" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="modal-title-gcal" class="font-bold text-stone-800 text-base">Conectar Cuentas y Calendarios</h3>
+                <button onclick="closeGcalModal()" class="text-stone-400 font-bold hover:text-stone-700">✕</button>
+            </div>
+            
+            <p id="modal-desc-gcal" class="text-xs text-stone-500 leading-relaxed">
+                Elige la forma más fácil para sincronizar tus eventos en tiempo real:
+            </p>
+
+            <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                <label id="lbl-gcal-opt1" class="font-bold text-amber-900 text-xs flex items-center gap-1.5">
+                    <span>📂 Opción 1: Subir Archivo .ics (Más Rápido)</span>
+                </label>
+                <p id="desc-gcal-opt1" class="text-[11px] text-amber-800">Descarga el archivo <code>.ics</code> desde Google Calendar y súbelo aquí directo:</p>
+                <input type="file" id="ics-file-input" accept=".ics" onchange="uploadIcsFile(event)" class="text-xs text-stone-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-amber-800 file:text-white hover:file:bg-amber-900 cursor-pointer">
+            </div>
+
+            <div class="bg-stone-50 border border-stone-200 rounded-xl p-3 space-y-2">
+                <label id="lbl-gcal-opt2" class="font-bold text-stone-700 text-xs block">🔗 Opción 2: Pegar URL Secreta iCal (.ics)</label>
+                <div class="flex gap-2">
+                    <input id="ical-url-input" type="text" placeholder="https://calendar.google.com/.../basic.ics" class="w-full bg-white border border-stone-200 p-2 rounded-xl text-xs focus:outline-none">
+                    <button id="btn-import-url" onclick="addIcalFeed()" class="bg-stone-900 hover:bg-stone-800 text-white px-3 py-2 rounded-xl font-bold text-xs whitespace-nowrap">Importar URL</button>
+                </div>
+            </div>
+
+            <div class="space-y-2">
+                <label id="lbl-gcal-sources" class="font-bold text-stone-700 text-xs block uppercase tracking-wider">Fuentes Conectadas</label>
+                <div id="accounts-list-container" class="space-y-1.5 text-xs"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- THEME MODAL -->
+    <div id="modal-theme" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="modal-title-theme" class="font-bold text-stone-800 text-base">Personalizar Colores Pastel</h3>
+                <button onclick="closeThemeModal()" class="text-stone-400">✕</button>
+            </div>
+            <div class="grid grid-cols-3 gap-2" id="preset-themes-container"></div>
+            <button id="btn-close-theme" onclick="closeThemeModal()" class="w-full bg-stone-900 text-white py-2.5 rounded-xl text-xs font-bold">Listo</button>
+        </div>
+    </div>
+
+    <!-- NEW CAMPAIGN MODAL -->
+    <div id="modal-campaign" class="fixed inset-0 bg-stone-900/40 backdrop-blur-xs hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+            <div class="flex justify-between items-center border-b pb-2">
+                <h3 id="modal-title-new-camp" class="font-bold text-stone-800 text-base">Crear Nueva Campaña</h3>
+                <button onclick="closeCampaignModal()" class="text-stone-400">✕</button>
+            </div>
+            <div class="space-y-3 text-xs">
+                <input id="campaign-name-input" type="text" class="w-full bg-stone-50 border p-2 rounded-xl">
+                <input id="campaign-brands-input" type="text" class="w-full bg-stone-50 border p-2 rounded-xl">
+            </div>
+            <button id="btn-save-new-camp" onclick="saveCampaign()" class="w-full bg-stone-900 text-white py-2.5 rounded-xl text-xs font-bold">Crear Campaña</button>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT LOGIC -->
+    <script>
+        const I18N = {
+            es: {
+                appTitle: 'PLANNER', plannerTab: '🗓️ PLANNER GENERAL', newCampTab: '➕ Nueva Campaña',
+                viewWeekly: 'Vista Semanal', viewMonthly: 'Vista Mensual', btnToday: 'HOY', btnTheme: 'Colores',
+                gcalBtn: 'Google / iCal', weekStartLabel: 'SEMANA QUE EMPIEZA', weekEndLabel: 'FINDE',
+                habitsTitle: 'HÁBITOS SEMANALES', todoTitle: 'LISTA TO-DO SEMANAL', campaignsTitle: 'ESTADO DE CAMPAÑAS',
+                todaysFocus: 'ENFOQUE DEL DÍA:', eventsHeader: 'EVENTOS', tasksHeader: 'TAREAS',
+                campChecklistTitle: 'CHECKLIST DE LA CAMPAÑA', campNotesTitle: 'NOTAS & BRIEFING',
+                backToPlannerBtn: '➔ Volver a PLANNER', btnEditTexts: '✏️ Textos', searchPlaceholder: '🔍 Buscar...', btnPrint: 'Imprimir',
+                newHabitPlaceholder: '+ Nuevo hábito...', newTodoPlaceholder: '+ Nueva tarea...',
+                newCampTaskPlaceholder: '+ Nueva tarea de campaña...', campNotesPlaceholder: 'Escribe aquí notas, briefing o marcas...',
+                noCampTasksMsg: 'No hay tareas en esta fase', habitsHeaderCol: 'HÁBITO', prevMonthBtn: '◄ Anterior', nextMonthBtn: 'Siguiente ►',
+                focusPlaceholder: 'Enfoque...', modalCustomTitle: 'Personalizar Textos y Etiquetas',
+                btnSaveCustomTitle: 'Guardar Todos los Cambios', modalGcalTitle: 'Conectar Cuentas y Calendarios',
+                modalGcalDesc: 'Elige la forma más fácil para sincronizar tus eventos en tiempo real:',
+                gcalOpt1Lbl: '📂 Opción 1: Subir Archivo .ics (Más Rápido)', gcalOpt1Desc: 'Descarga el archivo .ics desde Google Calendar y súbelo aquí directo:',
+                gcalOpt2Lbl: '🔗 Opción 2: Pegar URL Secreta iCal (.ics)', btnImportUrl: 'Importar URL', gcalSourcesLbl: 'FUENTES CONECTADAS',
+                noSourcesMsg: 'No hay calendarios importados aún.', modalThemeTitle: 'Personalizar Colores Pastel', btnThemeDone: 'Listo',
+                modalNewCampTitle: 'Crear Nueva Campaña', newCampNamePlaceholder: 'Nombre de la Campaña...', newCampBrandsPlaceholder: 'Marcas / Tags...',
+                btnSaveCamp: 'Crear Campaña',
+                dayNames: ['LUNES', 'MARTES', 'MIÉRCOLES', 'JUEVES', 'VIERNES', 'SÁBADO', 'DOMINGO'],
+                dayShorts: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+                months: ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'],
+                phases: { PRE_LAUNCH: 'Pre-Lanzamiento', VIP_ACCESS: 'Acceso VIP / Flash', PUBLIC_SALE: 'Venta Pública', POST_SALE: 'Post-Venta' }
+            },
+            en: {
+                appTitle: 'PLANNER', plannerTab: '🗓️ GENERAL PLANNER', newCampTab: '➕ New Campaign',
+                viewWeekly: 'Weekly View', viewMonthly: 'Monthly View', btnToday: 'TODAY', btnTheme: 'Colors',
+                gcalBtn: 'Google / iCal', weekStartLabel: 'WEEK STARTING', weekEndLabel: 'WEEKEND',
+                habitsTitle: 'WEEKLY HABITS', todoTitle: 'WEEKLY TO-DO LIST', campaignsTitle: 'CAMPAIGN STATUS',
+                todaysFocus: 'TODAY FOCUS:', eventsHeader: 'EVENTS', tasksHeader: 'TASKS',
+                campChecklistTitle: 'CAMPAIGN CHECKLIST', campNotesTitle: 'NOTES & BRIEFING',
+                backToPlannerBtn: '➔ Back to PLANNER', btnEditTexts: '✏️ Texts', searchPlaceholder: '🔍 Search...', btnPrint: 'Print',
+                newHabitPlaceholder: '+ New habit...', newTodoPlaceholder: '+ New task...',
+                newCampTaskPlaceholder: '+ New campaign task...', campNotesPlaceholder: 'Write notes, briefing or brands here...',
+                noCampTasksMsg: 'No tasks in this phase', habitsHeaderCol: 'HABIT', prevMonthBtn: '◄ Previous', nextMonthBtn: 'Next ►',
+                focusPlaceholder: 'Focus...', modalCustomTitle: 'Customize Texts & Labels',
+                btnSaveCustomTitle: 'Save All Changes', modalGcalTitle: 'Connect Accounts & Calendars',
+                modalGcalDesc: 'Choose the easiest way to sync your events in real time:',
+                gcalOpt1Lbl: '📂 Option 1: Upload .ics File (Fastest)', gcalOpt1Desc: 'Download the .ics file from Google Calendar and upload it directly:',
+                gcalOpt2Lbl: '🔗 Option 2: Paste Secret iCal URL (.ics)', btnImportUrl: 'Import URL', gcalSourcesLbl: 'CONNECTED SOURCES',
+                noSourcesMsg: 'No imported calendars yet.', modalThemeTitle: 'Customize Pastel Colors', btnThemeDone: 'Done',
+                modalNewCampTitle: 'Create New Campaign', newCampNamePlaceholder: 'Campaign Name...', newCampBrandsPlaceholder: 'Brands / Tags...',
+                btnSaveCamp: 'Create Campaign',
+                dayNames: ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'],
+                dayShorts: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+                months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+                phases: { PRE_LAUNCH: 'Pre-Launch', VIP_ACCESS: 'VIP Access / Flash', PUBLIC_SALE: 'Public Sale', POST_SALE: 'Post-Sale' }
+            },
+            fr: {
+                appTitle: 'PLANNER', plannerTab: '🗓️ PLANNER GÉNÉRAL', newCampTab: '➕ Nouvelle Campagne',
+                viewWeekly: 'Vue Semaine', viewMonthly: 'Vue Mensuelle', btnToday: 'AUJ.', btnTheme: 'Couleurs',
+                gcalBtn: 'Google / iCal', weekStartLabel: 'SEMAINE DU', weekEndLabel: 'WEEK-END',
+                habitsTitle: 'HABITUDES DE LA SEMAINE', todoTitle: 'TÂCHES DE LA SEMAINE', campaignsTitle: 'STATUT DES CAMPAGNES',
+                todaysFocus: 'FOCUS DU JOUR :', eventsHeader: 'ÉVÉNEMENTS', tasksHeader: 'TÂCHES',
+                campChecklistTitle: 'CHECKLIST DE CAMPAGNE', campNotesTitle: 'NOTES & BRIEFING',
+                backToPlannerBtn: '➔ Retour au PLANNER', btnEditTexts: '✏️ Textes', searchPlaceholder: '🔍 Rechercher...', btnPrint: 'Imprimer',
+                newHabitPlaceholder: '+ Nouvelle habitude...', newTodoPlaceholder: '+ Nouvelle tâche...',
+                newCampTaskPlaceholder: '+ Nouvelle tâche de campagne...', campNotesPlaceholder: 'Écrivez vos notes, briefing ou marques ici...',
+                noCampTasksMsg: 'Pas de tâches dans cette phase', habitsHeaderCol: 'HABITUDE', prevMonthBtn: '◄ Précédent', nextMonthBtn: 'Suivant ►',
+                focusPlaceholder: 'Focus...', modalCustomTitle: 'Personnaliser les textes et étiquettes',
+                btnSaveCustomTitle: 'Enregistrer tous les changements', modalGcalTitle: 'Connecter des comptes et calendriers',
+                modalGcalDesc: 'Choisissez le moyen le plus simple de synchroniser vos événements :',
+                gcalOpt1Lbl: '📂 Option 1 : Téléverser un fichier .ics', gcalOpt1Desc: 'Téléchargez le fichier .ics depuis Google Calendar et déposez-le ici :',
+                gcalOpt2Lbl: '🔗 Option 2 : Coller l'URL secrète iCal (.ics)', btnImportUrl: 'Importer URL', gcalSourcesLbl: 'SOURCES CONNECTÉES',
+                noSourcesMsg: 'Aucun calendrier importé pour le moment.', modalThemeTitle: 'Personnaliser les couleurs pastel', btnThemeDone: 'Terminé',
+                modalNewCampTitle: 'Créer une nouvelle campagne', newCampNamePlaceholder: 'Nom de la campagne...', newCampBrandsPlaceholder: 'Marques / Tags...',
+                btnSaveCamp: 'Créer la campagne',
+                dayNames: ['LUNDI', 'MARDI', 'MERCREDI', 'JEUDI', 'VENDREDI', 'SAMEDI', 'DIMANCHE'],
+                dayShorts: ['L', 'M', 'M', 'J', 'V', 'S', 'D'],
+                months: ['Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin', 'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre'],
+                phases: { PRE_LAUNCH: 'Pré-Lancement', VIP_ACCESS: 'Accès VIP / Flash', PUBLIC_SALE: 'Vente Publique', POST_SALE: 'Post-Vente' }
+            }
+        };
+
+        const PRESET_THEMES = [
+            { id: 'classic', name: 'Classic Pastel', accent: '#8DB8B5', bg: '#FAF7F2', days: ['#F9CFB4', '#ECA0A0', '#F3E5AB', '#F7C4D4', '#C7E8CA', '#8DB8B5', '#EEDC9A'] },
+            { id: 'nordic', name: 'Nordic Soft', accent: '#7A9A95', bg: '#F4F6F6', days: ['#D0E1D4', '#E4D1D1', '#F2E3C6', '#D6C7B2', '#B9C2C9', '#A8B7B2', '#D8D3C8'] },
+            { id: 'sunset', name: 'Warm Sunset', accent: '#E07A5F', bg: '#FAF5EF', days: ['#F4A261', '#E76F51', '#F4A261', '#E9C46A', '#2A9D8F', '#264653', '#F4A261'] }
+        ];
+
+        let state = JSON.parse(localStorage.getItem('planner_state_fixed')) || {
+            lang: 'es',
+            activeTab: 'PLANNER',
+            customTitles: {}, customEmoji: '✨', customLogo: null,
+            theme: { accent: '#8DB8B5', bg: '#FAF7F2', days: ['#F9CFB4', '#ECA0A0', '#F3E5AB', '#F7C4D4', '#C7E8CA', '#8DB8B5', '#EEDC9A'] },
+            campaigns: [
+                { id: 'camp_1', name: 'Designer Private Sale - Fall', brands: 'Gucci, Prada', phase: 'VIP_ACCESS', color: '#F9CFB4', notes: '', checklist: [] }
+            ],
+            habits: [
+                { id: 'h1', name: 'Dormir 8h+', checks: [true, true, false, true, true, false, false] },
+                { id: 'h2', name: 'Gym / Deporte', checks: [true, false, true, false, true, false, false] }
+            ],
+            weeklyTodos: [
+                { id: 'wt1', text: 'Revisar entregables de campaña', done: false }
+            ],
+            calendarData: {}
+        };
+
+        let currentView = 'weekly';
+        let currentDate = new Date();
+        let currentMonthDate = new Date();
+        let searchQuery = '';
+
+        function saveState() {
+            localStorage.setItem('planner_state_fixed', JSON.stringify(state));
+            applyCssTheme();
+            renderAll();
+        }
+
+        function applyCssTheme() {
+            const root = document.documentElement;
+            const theme = state.theme || PRESET_THEMES[0];
+            root.style.setProperty('--bg-color', theme.bg || '#FAF7F2');
+            root.style.setProperty('--accent-color', theme.accent || '#8DB8B5');
+            theme.days.forEach((c, idx) => root.style.setProperty(`--day-${idx}`, c));
+        }
+
+        function toISODateStr(d) {
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+
+        function getMonday(d) {
+            const date = new Date(d);
+            const day = date.getDay();
+            const diff = date.getDate() - day + (day === 0 ? -6 : 1);
+            return new Date(date.setDate(diff));
+        }
+
+        function changeLanguage(lang) {
+            state.lang = lang;
+            saveState();
+        }
+
+        function getLabel(key) {
+            const t = I18N[state.lang] || I18N['es'];
+            return (state.customTitles && state.customTitles[key]) ? state.customTitles[key] : (t[key] || key);
+        }
+
+        function editLabel(key) {
+            const currentVal = getLabel(key);
+            const newVal = prompt(`Modificar texto de "${key}":`, currentVal);
+            if (newVal !== null) {
+                if (!state.customTitles) state.customTitles = {};
+                state.customTitles[key] = newVal.trim();
+                saveState();
+            }
+        }
+
+        function renderWorkspaceTabs() {
+            const container = document.getElementById('workspace-tabs-container');
+            container.innerHTML = '';
+
+            const isPlanner = state.activeTab === 'PLANNER';
+            const plannerBtn = document.createElement('button');
+            plannerBtn.className = `px-3.5 py-2 rounded-xl text-xs font-extrabold flex items-center gap-2 shrink-0 transition border ${isPlanner ? 'bg-stone-900 text-white border-stone-900 shadow-xs' : 'bg-stone-50 text-stone-700 hover:bg-stone-100 border-stone-200'}`;
+            plannerBtn.onclick = () => switchTab('PLANNER');
+            plannerBtn.innerHTML = `<span>${getLabel('plannerTab')}</span>`;
+            container.appendChild(plannerBtn);
+
+            state.campaigns.forEach(camp => {
+                const isActive = state.activeTab === camp.id;
+                const tabBtn = document.createElement('div');
+                tabBtn.className = `px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 shrink-0 transition cursor-pointer border ${isActive ? 'ring-2 ring-stone-900 shadow-xs' : 'border-stone-200 hover:opacity-90'}`;
+                tabBtn.style.backgroundColor = `${camp.color}45`;
+                tabBtn.onclick = () => switchTab(camp.id);
+                tabBtn.innerHTML = `
+                    <span class="w-2.5 h-2.5 rounded-full" style="background:${camp.color}"></span>
+                    <span class="font-extrabold text-stone-800">${camp.name}</span>
+                    <button onclick="event.stopPropagation(); deleteCampaignTab('${camp.id}')" class="text-stone-400 hover:text-red-500 p-0.5"><i data-lucide="x" class="w-3.5 h-3.5"></i></button>
+                `;
+                container.appendChild(tabBtn);
+            });
+
+            const addBtn = document.createElement('button');
+            addBtn.className = 'px-3 py-2 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-900 flex items-center gap-1.5 shrink-0 transition border border-amber-300/60';
+            addBtn.onclick = () => openCampaignModal();
+            addBtn.innerHTML = `<i data-lucide="plus-circle" class="w-4 h-4"></i> <span>${getLabel('newCampTab')}</span>`;
+            container.appendChild(addBtn);
+        }
+
+        function switchTab(id) {
+            state.activeTab = id;
+            saveState();
+        }
+
+        function deleteCampaignTab(id) {
+            if (confirm('¿Eliminar campaña?')) {
+                state.campaigns = state.campaigns.filter(c => c.id !== id);
+                if (state.activeTab === id) state.activeTab = 'PLANNER';
+                saveState();
+            }
+        }
+
+        function renderDaysGrid() {
+            const container = document.getElementById('days-grid');
+            container.innerHTML = '';
+            const t = I18N[state.lang] || I18N['es'];
+            const monday = getMonday(currentDate);
+
+            const sunday = new Date(monday);
+            sunday.setDate(sunday.getDate() + 6);
+
+            document.getElementById('week-range-text').textContent = `${monday.getDate()} ${t.months[monday.getMonth()].substring(0,3)} - ${sunday.getDate()} ${t.months[sunday.getMonth()].substring(0,3)}, ${sunday.getFullYear()}`;
+            document.getElementById('sidebar-start-date').textContent = `${monday.getDate()} ${t.months[monday.getMonth()].substring(0,3)}, ${monday.getFullYear()}`;
+            document.getElementById('sidebar-end-date').textContent = `${sunday.getDate()} ${t.months[sunday.getMonth()].substring(0,3)}, ${sunday.getFullYear()}`;
+
+            const dayColors = state.theme?.days || PRESET_THEMES[0].days;
+
+            for (let i = 0; i < 7; i++) {
+                const dayDate = new Date(monday);
+                dayDate.setDate(dayDate.getDate() + i);
+                const isoStr = toISODateStr(dayDate);
+
+                if (!state.calendarData[isoStr]) state.calendarData[isoStr] = { focus: '', events: [], tasks: [] };
+                const dayData = state.calendarData[isoStr];
+
+                const dayCol = document.createElement('div');
+                dayCol.className = 'bg-white rounded-2xl shadow-xs border border-stone-200/60 flex flex-col h-full overflow-hidden min-h-[500px]';
+
+                const header = document.createElement('div');
+                header.className = 'p-3 text-center border-b border-stone-100';
+                header.style.backgroundColor = dayColors[i];
+                header.innerHTML = `
+                    <h2 class="font-bold text-xs tracking-wider text-stone-800">${t.dayNames[i]}</h2>
+                    <p class="text-[10px] font-semibold text-stone-600 uppercase mt-0.5">${dayDate.getDate()} ${t.months[dayDate.getMonth()].substring(0,3)}</p>
+                `;
+
+                const body = document.createElement('div');
+                body.className = 'p-3 flex-1 flex flex-col space-y-4 text-xs';
+
+                body.innerHTML = `
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-stone-400 uppercase tracking-wider block editable-label" onclick="editLabel('todaysFocus')">${getLabel('todaysFocus')}</label>
+                        <input type="text" value="${dayData.focus || ''}" onchange="updateDayFocus('${isoStr}', this.value)" placeholder="${t.focusPlaceholder}" class="w-full text-xs font-medium bg-stone-50 border border-stone-100 rounded-lg px-2 py-1 text-stone-700 italic">
+                    </div>
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex items-center justify-between border-b border-dashed border-stone-200 pb-1">
+                            <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider editable-label" onclick="editLabel('eventsHeader')">${getLabel('eventsHeader')}</span>
+                            <button onclick="promptAddEvent('${isoStr}')" class="text-stone-400 hover:text-stone-700 font-bold">+</button>
+                        </div>
+                        <div id="events-list-${isoStr}" class="space-y-1.5 mt-2"></div>
+                    </div>
+                    <div class="space-y-1.5 flex-1">
+                        <div class="flex items-center justify-between border-b border-dashed border-stone-200 pb-1">
+                            <span class="text-[10px] font-bold text-stone-500 uppercase tracking-wider editable-label" onclick="editLabel('tasksHeader')">${getLabel('tasksHeader')}</span>
+                            <button onclick="promptAddTask('${isoStr}')" class="text-stone-400 hover:text-stone-700 font-bold">+</button>
+                        </div>
+                        <div id="tasks-list-${isoStr}" class="space-y-1.5 mt-2"></div>
+                    </div>
+                `;
+
+                const eventsList = body.querySelector(`#events-list-${isoStr}`);
+                dayData.events.forEach((ev, eIdx) => {
+                    if (searchQuery && !ev.title.toLowerCase().includes(searchQuery.toLowerCase())) return;
+                    const el = document.createElement('div');
+                    el.className = 'p-2 rounded-xl border border-stone-100 bg-amber-50/50 flex items-start justify-between gap-1 group';
+                    el.innerHTML = `
+                        <span class="font-semibold text-stone-800 text-[11px]">${ev.title}</span>
+                        <button onclick="deleteEvent('${isoStr}', ${eIdx})" class="text-stone-400 hover:text-red-500"><i data-lucide="x" class="w-3 h-3"></i></button>
+                    `;
+                    eventsList.appendChild(el);
+                });
+
+                const tasksList = body.querySelector(`#tasks-list-${isoStr}`);
+                dayData.tasks.forEach((task) => {
+                    if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) return;
+                    const el = document.createElement('div');
+                    el.className = 'p-2 rounded-xl bg-stone-50 border border-stone-100 flex items-center justify-between gap-1 group';
+                    el.innerHTML = `
+                        <div class="flex items-center gap-1.5 cursor-pointer" onclick="toggleTask('${isoStr}', '${task.id}')">
+                            <div class="w-3.5 h-3.5 rounded border flex items-center justify-center ${task.done ? 'bg-stone-700 text-white' : 'bg-white'}">${task.done ? '✓' : ''}</div>
+                            <span class="text-[11px] ${task.done ? 'line-through text-stone-400' : 'text-stone-700'}">${task.title}</span>
+                        </div>
+                        <button onclick="deleteTask('${isoStr}', '${task.id}')" class="text-stone-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                    `;
+                    tasksList.appendChild(el);
+                });
+
+                dayCol.appendChild(header);
+                dayCol.appendChild(body);
+                container.appendChild(dayCol);
+            }
+        }
+
+        function renderHabits() {
+            const container = document.getElementById('habits-container');
+            container.innerHTML = '';
+            let totalPossible = state.habits.length * 7;
+            let current = 0;
+
+            state.habits.forEach((habit, hIdx) => {
+                if (searchQuery && !habit.name.toLowerCase().includes(searchQuery.toLowerCase())) return;
+                const habitRow = document.createElement('div');
+                habitRow.className = 'grid grid-cols-12 items-center text-center gap-0.5 p-1 hover:bg-stone-50 rounded-lg';
+                let titleHtml = `<div class="col-span-5 text-left font-medium text-stone-700 truncate">${habit.name}</div>`;
+                let checksHtml = '';
+                habit.checks.forEach((isChecked, dIdx) => {
+                    if (isChecked) current++;
+                    checksHtml += `
+                        <button onclick="toggleHabitCheck(${hIdx}, ${dIdx})" class="w-4 h-4 mx-auto rounded border flex items-center justify-center ${isChecked ? 'bg-emerald-400 text-white' : 'bg-white'}">
+                            ${isChecked ? '✓' : ''}
+                        </button>
+                    `;
+                });
+                habitRow.innerHTML = titleHtml + checksHtml;
+                container.appendChild(habitRow);
+            });
+
+            const pct = totalPossible > 0 ? ((current / totalPossible) * 100).toFixed(1) : '0.0';
+            document.getElementById('habits-progress-pct').textContent = `${pct}%`;
+            document.getElementById('habits-progress-bar').style.width = `${pct}%`;
+        }
+
+        function renderWeeklyTodos() {
+            const container = document.getElementById('weekly-todo-container');
+            container.innerHTML = '';
+            state.weeklyTodos.forEach((todo, idx) => {
+                if (searchQuery && !todo.text.toLowerCase().includes(searchQuery.toLowerCase())) return;
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between text-xs p-2 rounded-xl bg-stone-50 border border-stone-100';
+                item.innerHTML = `
+                    <div class="flex items-center gap-2 cursor-pointer" onclick="toggleWeeklyTodo(${idx})">
+                        <div class="w-4 h-4 rounded border flex items-center justify-center ${todo.done ? 'bg-rose-400 text-white' : 'bg-white'}">${todo.done ? '✓' : ''}</div>
+                        <span class="${todo.done ? 'line-through text-stone-400' : 'text-stone-700'}">${todo.text}</span>
+                    </div>
+                    <button onclick="deleteWeeklyTodo(${idx})" class="text-stone-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function renderCampaignProgressSummary() {
+            const container = document.getElementById('campaign-progress-container');
+            container.innerHTML = '';
+            state.campaigns.forEach(camp => {
+                if (searchQuery && !camp.name.toLowerCase().includes(searchQuery.toLowerCase()) && !(camp.brands || '').toLowerCase().includes(searchQuery.toLowerCase())) return;
+                const total = camp.checklist ? camp.checklist.length : 0;
+                const done = camp.checklist ? camp.checklist.filter(c => c.done).length : 0;
+                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
+
+                const card = document.createElement('div');
+                card.className = 'p-3 rounded-xl border border-stone-100 space-y-1.5 cursor-pointer';
+                card.style.backgroundColor = `${camp.color}20`;
+                card.onclick = () => switchTab(camp.id);
+
+                card.innerHTML = `
+                    <div class="flex justify-between items-center text-xs font-bold text-stone-800">
+                        <span class="truncate">${camp.name}</span>
+                        <span>${pct}%</span>
+                    </div>
+                    <div class="w-full bg-white/80 rounded-full h-1.5 overflow-hidden">
+                        <div class="h-1.5 rounded-full transition-all duration-300" style="width:${pct}%; background:${camp.color}"></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        function renderCampaignWorkspace() {
+            const camp = state.campaigns.find(c => c.id === state.activeTab);
+            if (!camp) return;
+
+            const t = I18N[state.lang] || I18N['es'];
+
+            document.getElementById('campaign-header-card').innerHTML = `
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-2xl flex items-center justify-center text-stone-800 font-bold" style="background:${camp.color}">🛍️</div>
+                    <div>
+                        <h2 class="font-extrabold text-lg text-stone-800">${camp.name}</h2>
+                        <p class="text-xs text-stone-500">Marcas: ${camp.brands || 'General'}</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('PLANNER')" class="bg-stone-900 text-white px-3.5 py-1.5 rounded-xl text-xs font-bold">${getLabel('backToPlannerBtn')}</button>
+            `;
+
+            const phaseSelect = document.getElementById('camp-new-task-phase');
+            if (phaseSelect) {
+                phaseSelect.innerHTML = `
+                    <option value="PRE_LAUNCH">${t.phases.PRE_LAUNCH}</option>
+                    <option value="VIP_ACCESS">${t.phases.VIP_ACCESS}</option>
+                    <option value="PUBLIC_SALE">${t.phases.PUBLIC_SALE}</option>
+                    <option value="POST_SALE">${t.phases.POST_SALE}</option>
+                `;
+            }
+
+            const taskInput = document.getElementById('camp-new-task-input');
+            if (taskInput) taskInput.placeholder = t.newCampTaskPlaceholder;
+
+            const notesTextarea = document.getElementById('camp-notes-textarea');
+            if (notesTextarea) {
+                notesTextarea.value = camp.notes || '';
+                notesTextarea.placeholder = t.campNotesPlaceholder;
+            }
+
+            renderCampaignChecklist(camp);
+        }
+
+        function renderCampaignChecklist(camp) {
+            const phases = ['PRE_LAUNCH', 'VIP_ACCESS', 'PUBLIC_SALE', 'POST_SALE'];
+            const t = I18N[state.lang] || I18N['es'];
+            const container = document.getElementById('camp-checklist-phases-container');
+            container.innerHTML = '';
+
+            let total = camp.checklist ? camp.checklist.length : 0;
+            let done = camp.checklist ? camp.checklist.filter(c => c.done).length : 0;
+            let pct = total > 0 ? Math.round((done / total) * 100) : 0;
+            document.getElementById('camp-checklist-progress').textContent = `${pct}%`;
+
+            phases.forEach(phaseKey => {
+                const phaseTasks = (camp.checklist || []).filter(task => task.phase === phaseKey);
+                const phaseDiv = document.createElement('div');
+                phaseDiv.className = 'border border-stone-100 rounded-xl p-3 bg-stone-50/50 space-y-2';
+                
+                let tasksHtml = '';
+                phaseTasks.forEach(task => {
+                    if (searchQuery && !task.title.toLowerCase().includes(searchQuery.toLowerCase())) return;
+                    tasksHtml += `
+                        <div class="flex items-center justify-between text-xs bg-white p-2 rounded-lg border border-stone-100">
+                            <div class="flex items-center gap-2 cursor-pointer" onclick="toggleCampTask('${task.id}')">
+                                <div class="w-3.5 h-3.5 rounded border flex items-center justify-center ${task.done ? 'bg-emerald-600 text-white' : 'bg-white'}">${task.done ? '✓' : ''}</div>
+                                <span class="${task.done ? 'line-through text-stone-400' : 'text-stone-700'}">${task.title}</span>
+                            </div>
+                            <button onclick="deleteCampTask('${task.id}')" class="text-stone-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3 h-3"></i></button>
+                        </div>
+                    `;
+                });
+
+                phaseDiv.innerHTML = `
+                    <div class="font-bold text-xs text-stone-700 uppercase tracking-wider">${t.phases[phaseKey] || phaseKey} (${phaseTasks.length})</div>
+                    <div class="space-y-1.5">${tasksHtml || `<p class="text-[11px] text-stone-400 italic">${t.noCampTasksMsg}</p>`}</div>
+                `;
+                container.appendChild(phaseDiv);
+            });
+        }
+
+        window.addCampaignTask = function() {
+            const camp = state.campaigns.find(c => c.id === state.activeTab);
+            const input = document.getElementById('camp-new-task-input');
+            const phase = document.getElementById('camp-new-task-phase').value;
+            if (camp && input.value.trim()) {
+                if (!camp.checklist) camp.checklist = [];
+                camp.checklist.push({ id: 'ct_' + Date.now(), title: input.value.trim(), phase, done: false });
+                input.value = '';
+                saveState();
+            }
+        };
+
+        window.toggleCampTask = function(taskId) {
+            const camp = state.campaigns.find(c => c.id === state.activeTab);
+            if (camp && camp.checklist) {
+                const task = camp.checklist.find(t => t.id === taskId);
+                if (task) { task.done = !task.done; saveState(); }
+            }
+        };
+
+        window.deleteCampTask = function(taskId) {
+            const camp = state.campaigns.find(c => c.id === state.activeTab);
+            if (camp && camp.checklist) {
+                camp.checklist = camp.checklist.filter(t => t.id !== taskId);
+                saveState();
+            }
+        };
+
+        window.saveCampaignNotes = function() {
+            const camp = state.campaigns.find(c => c.id === state.activeTab);
+            if (camp) {
+                camp.notes = document.getElementById('camp-notes-textarea').value;
+                saveState();
+            }
+        };
+
+        window.openCustomTitlesModal = () => { ['appTitle', 'viewWeekly', 'viewMonthly', 'btnToday', 'plannerTab', 'newCampTab', 'habitsTitle', 'todoTitle', 'campaignsTitle', 'eventsHeader', 'tasksHeader', 'todaysFocus', 'campChecklistTitle', 'campNotesTitle', 'backToPlannerBtn'].forEach(key => { const input = document.getElementById(`custom-title-${key}`); if (input) input.value = getLabel(key); }); document.getElementById('modal-custom-titles').classList.remove('hidden'); };
+        window.closeCustomTitlesModal = () => document.getElementById('modal-custom-titles').classList.add('hidden');
+        window.saveAllCustomTitles = () => { 
+            if (!state.customTitles) state.customTitles = {};
+            ['appTitle', 'viewWeekly', 'viewMonthly', 'btnToday', 'plannerTab', 'newCampTab', 'habitsTitle', 'todoTitle', 'campaignsTitle', 'eventsHeader', 'tasksHeader', 'todaysFocus', 'campChecklistTitle', 'campNotesTitle', 'backToPlannerBtn'].forEach(key => { const input = document.getElementById(`custom-title-${key}`); if (input && input.value.trim()) state.customTitles[key] = input.value.trim(); }); 
+            closeCustomTitlesModal(); 
+            saveState(); 
+        };
+
+        window.uploadIcsFile = function(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const text = e.target.result;
+                const count = parseAndStoreIcalText(text);
+                if (!state.connectedAccounts) state.connectedAccounts = [];
+                state.connectedAccounts.push({ id: 'file_' + Date.now(), name: file.name, info: `${count} eventos importados` });
+                saveState();
+                alert(`¡Éxito! Se han importado ${count} eventos de "${file.name}".`);
+            };
+            reader.readAsText(file);
+        };
+
+        function parseAndStoreIcalText(icalText) {
+            const lines = icalText.split(/
+|
+/);
+            let inEvent = false, currentSummary = '', currentDtStart = '', count = 0;
+
+            lines.forEach(line => {
+                if (line.startsWith('BEGIN:VEVENT')) { inEvent = true; currentSummary = ''; currentDtStart = ''; }
+                else if (line.startsWith('END:VEVENT')) {
+                    inEvent = false;
+                    if (currentDtStart && currentSummary) {
+                        const dateKey = currentDtStart.substring(0, 8);
+                        if (dateKey.length === 8) {
+                            const formattedIso = `${dateKey.substring(0,4)}-${dateKey.substring(4,6)}-${dateKey.substring(6,8)}`;
+                            if (!state.calendarData[formattedIso]) state.calendarData[formattedIso] = { focus: '', events: [], tasks: [] };
+                            const evId = 'ics_' + formattedIso + '_' + currentSummary.replace(/\s+/g, '_');
+                            if (!state.calendarData[formattedIso].events.some(e => e.id === evId || e.title === currentSummary)) {
+                                state.calendarData[formattedIso].events.push({ id: evId, title: currentSummary });
+                                count++;
+                            }
+                        }
+                    }
+                } else if (inEvent) {
+                    if (line.startsWith('SUMMARY:')) currentSummary = line.replace('SUMMARY:', '').trim();
+                    else if (line.startsWith('DTSTART')) { const parts = line.split(':'); if (parts.length > 1) currentDtStart = parts[1].trim(); }
+                }
+            });
+            return count;
+        }
+
+        window.addIcalFeed = async function() {
+            const url = document.getElementById('ical-url-input').value.trim();
+            if (!url) return alert('Pega una URL válida de iCal.');
+            try {
+                const res = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(url));
+                const text = await res.text();
+                const count = parseAndStoreIcalText(text);
+                if (!state.connectedAccounts) state.connectedAccounts = [];
+                state.connectedAccounts.push({ id: 'ical_' + Date.now(), name: 'Link iCal Web', info: `${count} eventos importados` });
+                document.getElementById('ical-url-input').value = '';
+                saveState();
+                alert(`¡Éxito! Se han importado ${count} eventos.`);
+            } catch (e) {
+                alert('No se pudo acceder a la URL por restricciones de privacidad. Por favor descarga el archivo .ics y súbelo en la Opción 1.');
+            }
+        };
+
+        function renderConnectedAccountsList() {
+            const container = document.getElementById('accounts-list-container');
+            if (!container) return;
+            container.innerHTML = '';
+            const t = I18N[state.lang] || I18N['es'];
+            if (!state.connectedAccounts || state.connectedAccounts.length === 0) {
+                container.innerHTML = `<div class="text-stone-400 text-[11px] text-center p-2 border border-dashed rounded-lg">${t.noSourcesMsg}</div>`;
+                return;
+            }
+            state.connectedAccounts.forEach((acc, idx) => {
+                const item = document.createElement('div');
+                item.className = 'flex items-center justify-between p-2 rounded-lg bg-stone-50 border border-stone-200 text-xs';
+                item.innerHTML = `<div><div class="font-bold text-stone-800">${acc.name}</div><div class="text-[10px] text-stone-500">${acc.info}</div></div><button onclick="deleteConnectedAccount(${idx})" class="text-stone-400 hover:text-red-500 font-bold p-1">✕</button>`;
+                container.appendChild(item);
+            });
+        }
+
+        window.deleteConnectedAccount = function(idx) { state.connectedAccounts.splice(idx, 1); saveState(); renderConnectedAccountsList(); };
+
+        window.uploadCustomLogo = function(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                state.customLogo = e.target.result;
+                saveState();
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.removeCustomLogo = function() {
+            state.customLogo = null;
+            state.customEmoji = '✨';
+            saveState();
+        };
+
+        window.updateCustomIconEmoji = function(val) {
+            if (val.trim()) {
+                state.customEmoji = val.trim();
+                state.customLogo = null;
+                saveState();
+            }
+        };
+
+        window.saveCampaign = function() {
+            const nameInput = document.getElementById('campaign-name-input');
+            const brandsInput = document.getElementById('campaign-brands-input');
+            const n = nameInput ? nameInput.value.trim() : '';
+            const b = brandsInput ? brandsInput.value.trim() : '';
+            if (n) {
+                const newId = 'camp_' + Date.now();
+                state.campaigns.push({ id: newId, name: n, brands: b, color: '#F9CFB4', notes: '', checklist: [] });
+                state.activeTab = newId;
+                if (nameInput) nameInput.value = '';
+                if (brandsInput) brandsInput.value = '';
+                closeCampaignModal();
+                saveState();
+            }
+        };
+
+        window.filterPlannerContent = function(val) {
+            searchQuery = val.trim();
+            renderAll();
+        };
+
+        window.printPlanner = function() {
+            window.print();
+        };
+
+        window.exportBackupData = function() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(state));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `PLANNER_BACKUP_${toISODateStr(new Date())}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        };
+
+        window.importBackupData = function(evt) {
+            const file = evt.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const loadedState = JSON.parse(e.target.result);
+                    if (loadedState && typeof loadedState === 'object') {
+                        state = loadedState;
+                        saveState();
+                        alert('¡Copia de seguridad cargada con éxito!');
+                    }
+                } catch(err) {
+                    alert('El archivo cargado no es un JSON de backup válido.');
+                }
+            };
+            reader.readAsText(file);
+        };
+
+        function renderAll() {
+            const t = I18N[state.lang] || I18N['es'];
+            const langSelect = document.getElementById('lang-select');
+            if (langSelect) langSelect.value = state.lang;
+
+            // SEARCH PLACEHOLDER & BUTTONS
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.placeholder = t.searchPlaceholder;
+            const printBtn = document.getElementById('txt-btn-print');
+            if (printBtn) printBtn.textContent = t.btnPrint;
+
+            // TOP BAR BUTTONS & LABELS
+            document.getElementById('txt-app-title').textContent = getLabel('appTitle');
+            const logoContainer = document.getElementById('app-logo-container');
+            if (logoContainer) {
+                if (state.customLogo) {
+                    logoContainer.innerHTML = `<img src="${state.customLogo}" class="w-6 h-6 object-cover rounded-full border border-white/60 shadow-xs">`;
+                } else {
+                    logoContainer.innerHTML = `<span class="text-xl leading-none">${state.customEmoji || '✨'}</span>`;
+                }
+            }
+            const iconEmojiInput = document.getElementById('custom-icon-emoji');
+            if (iconEmojiInput && state.customEmoji) iconEmojiInput.value = state.customEmoji;
+
+            document.getElementById('txt-view-weekly').textContent = getLabel('viewWeekly');
+            document.getElementById('txt-view-monthly').textContent = getLabel('viewMonthly');
+            document.getElementById('txt-btn-today').textContent = getLabel('btnToday');
+            document.getElementById('txt-btn-edit-texts').textContent = getLabel('btnEditTexts');
+            document.getElementById('txt-btn-theme').textContent = getLabel('btnTheme');
+            document.getElementById('txt-btn-gcal').textContent = getLabel('gcalBtn');
+
+            // SIDEBAR LABELS
+            document.getElementById('txt-week-start-label').textContent = getLabel('weekStartLabel');
+            document.getElementById('txt-week-end-label').textContent = getLabel('weekEndLabel');
+            document.getElementById('txt-habits-title').innerHTML = `<i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-500"></i> ${getLabel('habitsTitle')}`;
+            document.getElementById('txt-todo-title').innerHTML = `<i data-lucide="list-todo" class="w-4 h-4 text-rose-400"></i> ${getLabel('todoTitle')}`;
+            document.getElementById('txt-campaigns-title').innerHTML = `<i data-lucide="shopping-bag" class="w-4 h-4 text-amber-500"></i> ${getLabel('campaignsTitle')}`;
+
+            // CAMPAIGN WORKSPACE LABELS
+            document.getElementById('txt-camp-checklist-title').textContent = getLabel('campChecklistTitle');
+            document.getElementById('txt-camp-notes-title').textContent = getLabel('campNotesTitle');
+
+            // INPUT PLACEHOLDERS
+            document.getElementById('new-habit-input').placeholder = t.newHabitPlaceholder;
+            document.getElementById('new-todo-input').placeholder = t.newTodoPlaceholder;
+
+            // MONTH NAVIGATION
+            const btnPrevMonth = document.getElementById('btn-prev-month');
+            const btnNextMonth = document.getElementById('btn-next-month');
+            if (btnPrevMonth) btnPrevMonth.textContent = t.prevMonthBtn;
+            if (btnNextMonth) btnNextMonth.textContent = t.nextMonthBtn;
+
+            // MODALS TEXTS
+            document.getElementById('modal-title-custom-texts').textContent = t.modalCustomTitle;
+            document.getElementById('btn-save-custom-titles').textContent = t.btnSaveCustomTitle;
+            
+            document.getElementById('modal-title-gcal').textContent = t.modalGcalTitle;
+            document.getElementById('modal-desc-gcal').textContent = t.modalGcalDesc;
+            document.getElementById('lbl-gcal-opt1').innerHTML = `<span>${t.gcalOpt1Lbl}</span>`;
+            document.getElementById('desc-gcal-opt1').innerHTML = t.gcalOpt1Desc;
+            document.getElementById('lbl-gcal-opt2').textContent = t.gcalOpt2Lbl;
+            document.getElementById('btn-import-url').textContent = t.btnImportUrl;
+            document.getElementById('lbl-gcal-sources').textContent = t.gcalSourcesLbl;
+
+            document.getElementById('modal-title-theme').textContent = t.modalThemeTitle;
+            document.getElementById('btn-close-theme').textContent = t.btnThemeDone;
+
+            document.getElementById('modal-title-new-camp').textContent = t.modalNewCampTitle;
+            document.getElementById('campaign-name-input').placeholder = t.newCampNamePlaceholder;
+            document.getElementById('campaign-brands-input').placeholder = t.newCampBrandsPlaceholder;
+            document.getElementById('btn-save-new-camp').textContent = t.btnSaveCamp;
+
+            document.getElementById('habits-header-days').innerHTML = `<span class="col-span-5 text-left">${t.habitsHeaderCol}</span>` + t.dayShorts.map(s => `<span>${s}</span>`).join('');
+
+            renderWorkspaceTabs();
+            const isPlanner = state.activeTab === 'PLANNER';
+            document.getElementById('planner-workspace').classList.toggle('hidden', !isPlanner);
+            document.getElementById('campaign-workspace').classList.toggle('hidden', isPlanner);
+
+            if (isPlanner) {
+                renderHabits();
+                renderWeeklyTodos();
+                renderCampaignProgressSummary();
+                if (currentView === 'weekly') renderDaysGrid();
+                else renderMonthlyView();
+            } else {
+                renderCampaignWorkspace();
+            }
+            lucide.createIcons();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            applyCssTheme();
+            renderAll();
+        });
+    </script>
+</body>
+</html>

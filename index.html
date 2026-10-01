@@ -32,7 +32,7 @@
         .editable-label:hover { background-color: rgba(0,0,0,0.05); outline: 1px dashed #cbd5e1; }
         @media print {
             header, #workspace-tabs-container, button, select, input, .no-print { display: none !important; }
-            body { background-color: white !important; p: 0 !important; }
+            body { background-color: white !important; padding: 0 !important; }
             .lg\:col-span-9 { width: 100% !important; }
             #days-grid { grid-template-columns: repeat(7, minmax(0, 1fr)) !important; gap: 4px !important; }
         }
@@ -71,38 +71,44 @@
                     </div>
                 </div>
 
-                <!-- SEARCH & UTILITIES BAR -->
-                <div class="flex flex-wrap items-center gap-2.5">
-                    <div class="relative">
-                        <input id="search-input" type="text" oninput="filterPlannerContent(this.value)" placeholder="🔍 Buscar..." class="bg-stone-50 border border-stone-200 rounded-xl px-3 py-1.5 text-xs font-medium focus:outline-none focus:bg-white w-32 md:w-44 transition">
+                <!-- SEARCH & UTILITIES BAR RE-DESIGNED -->
+                <div class="flex flex-wrap items-center gap-2">
+                    <div class="relative flex items-center">
+                        <input id="search-input" type="text" onkeyup="filterPlannerContent(this.value)" placeholder="🔍 Buscar..." class="bg-stone-50 border border-stone-200 rounded-xl pl-3 pr-3 py-1.5 text-xs font-semibold text-stone-700 focus:outline-none focus:bg-white focus:ring-2 focus:ring-amber-300/50 w-36 md:w-48 transition shadow-2xs">
                     </div>
 
-                    <button onclick="openCustomTitlesModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 p-2 px-3 rounded-xl text-xs font-bold flex items-center gap-1.5 transition">
-                        <i data-lucide="edit-3" class="w-4 h-4 text-amber-600"></i>
-                        <span id="txt-btn-edit-texts">✏️ Textos</span>
+                    <div class="h-6 w-px bg-stone-200 mx-1"></div>
+
+                    <button onclick="openCustomTitlesModal()" class="bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200/80 px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition shadow-2xs">
+                        <i data-lucide="edit-3" class="w-3.5 h-3.5 text-amber-600"></i>
+                        <span id="txt-btn-edit-texts">Textos</span>
                     </button>
 
-                    <button onclick="openThemeModal()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-3 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition">
-                        <i data-lucide="palette" class="w-4 h-4 text-amber-500"></i>
+                    <button onclick="openThemeModal()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs">
+                        <i data-lucide="palette" class="w-3.5 h-3.5 text-amber-500"></i>
                         <span id="txt-btn-theme">Colores</span>
                     </button>
 
-                    <button onclick="printPlanner()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-3 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition" title="Imprimir / PDF">
-                        <i data-lucide="printer" class="w-4 h-4 text-stone-600"></i>
+                    <button onclick="printPlanner()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 px-3 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1.5 transition shadow-2xs" title="Imprimir o Guardar en PDF">
+                        <i data-lucide="printer" class="w-3.5 h-3.5 text-stone-600"></i>
                         <span id="txt-btn-print">Imprimir</span>
                     </button>
 
-                    <button onclick="exportBackupData()" class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-2.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1 transition" title="Guardar Copia de Seguridad">
-                        <i data-lucide="download" class="w-4 h-4 text-emerald-600"></i>
-                    </button>
+                    <!-- BACKUP BUTTONS -->
+                    <div class="flex items-center bg-stone-50 rounded-xl border border-stone-200 p-0.5 shadow-2xs">
+                        <button onclick="exportBackupData()" class="px-2.5 py-1 hover:bg-stone-200/60 rounded-lg text-xs font-bold text-stone-700 flex items-center gap-1 transition" title="Exportar Copia de Seguridad (.json)">
+                            <i data-lucide="download" class="w-3.5 h-3.5 text-emerald-600"></i>
+                            <span class="hidden md:inline">Backup</span>
+                        </button>
+                        <label class="px-2.5 py-1 hover:bg-stone-200/60 rounded-lg text-xs font-bold text-stone-700 flex items-center gap-1 transition cursor-pointer" title="Restaurar Copia de Seguridad">
+                            <i data-lucide="upload" class="w-3.5 h-3.5 text-blue-600"></i>
+                            <span class="hidden md:inline">Cargar</span>
+                            <input type="file" accept=".json" onchange="importBackupData(event)" class="hidden">
+                        </label>
+                    </div>
 
-                    <label class="bg-stone-50 hover:bg-stone-100 text-stone-700 p-2 px-2.5 rounded-xl border border-stone-200 text-xs font-semibold flex items-center gap-1 transition cursor-pointer" title="Cargar Copia de Seguridad">
-                        <i data-lucide="upload" class="w-4 h-4 text-blue-600"></i>
-                        <input type="file" accept=".json" onchange="importBackupData(event)" class="hidden">
-                    </label>
-
-                    <div class="flex items-center gap-1 bg-stone-50 px-2.5 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold">
-                        <i data-lucide="globe" class="w-4 h-4 text-stone-500"></i>
+                    <div class="flex items-center gap-1 bg-stone-50 px-2.5 py-1.5 rounded-xl border border-stone-200 text-xs font-semibold shadow-2xs">
+                        <i data-lucide="globe" class="w-3.5 h-3.5 text-stone-500"></i>
                         <select id="lang-select" onchange="changeLanguage(this.value)" class="bg-transparent text-xs font-bold text-stone-700 focus:outline-none cursor-pointer">
                             <option value="es">ES</option>
                             <option value="en">EN</option>
@@ -110,8 +116,8 @@
                         </select>
                     </div>
 
-                    <button onclick="openGcalModal()" class="bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-xs transition">
-                        <i data-lucide="calendar-sync" class="w-4 h-4 text-blue-600"></i>
+                    <button onclick="openGcalModal()" class="bg-white hover:bg-stone-50 border border-stone-200 text-stone-700 px-3 py-1.5 rounded-xl text-xs font-semibold flex items-center gap-2 shadow-2xs transition">
+                        <i data-lucide="calendar-sync" class="w-3.5 h-3.5 text-blue-600"></i>
                         <span id="txt-btn-gcal">Google / iCal</span>
                     </button>
                 </div>
@@ -336,7 +342,7 @@
                 habitsTitle: 'HÁBITOS SEMANALES', todoTitle: 'LISTA TO-DO SEMANAL', campaignsTitle: 'ESTADO DE CAMPAÑAS',
                 todaysFocus: 'ENFOQUE DEL DÍA:', eventsHeader: 'EVENTOS', tasksHeader: 'TAREAS',
                 campChecklistTitle: 'CHECKLIST DE LA CAMPAÑA', campNotesTitle: 'NOTAS & BRIEFING',
-                backToPlannerBtn: '➔ Volver a PLANNER', btnEditTexts: '✏️ Textos', searchPlaceholder: '🔍 Buscar...', btnPrint: 'Imprimir',
+                backToPlannerBtn: '➔ Volver a PLANNER', btnEditTexts: 'Textos', searchPlaceholder: '🔍 Buscar...', btnPrint: 'Imprimir',
                 newHabitPlaceholder: '+ Nuevo hábito...', newTodoPlaceholder: '+ Nueva tarea...',
                 newCampTaskPlaceholder: '+ Nueva tarea de campaña...', campNotesPlaceholder: 'Escribe aquí notas, briefing o marcas...',
                 noCampTasksMsg: 'No hay tareas en esta fase', habitsHeaderCol: 'HÁBITO', prevMonthBtn: '◄ Anterior', nextMonthBtn: 'Siguiente ►',
@@ -360,7 +366,7 @@
                 habitsTitle: 'WEEKLY HABITS', todoTitle: 'WEEKLY TO-DO LIST', campaignsTitle: 'CAMPAIGN STATUS',
                 todaysFocus: 'TODAY FOCUS:', eventsHeader: 'EVENTS', tasksHeader: 'TASKS',
                 campChecklistTitle: 'CAMPAIGN CHECKLIST', campNotesTitle: 'NOTES & BRIEFING',
-                backToPlannerBtn: '➔ Back to PLANNER', btnEditTexts: '✏️ Texts', searchPlaceholder: '🔍 Search...', btnPrint: 'Print',
+                backToPlannerBtn: '➔ Back to PLANNER', btnEditTexts: 'Texts', searchPlaceholder: '🔍 Search...', btnPrint: 'Print',
                 newHabitPlaceholder: '+ New habit...', newTodoPlaceholder: '+ New task...',
                 newCampTaskPlaceholder: '+ New campaign task...', campNotesPlaceholder: 'Write notes, briefing or brands here...',
                 noCampTasksMsg: 'No tasks in this phase', habitsHeaderCol: 'HABIT', prevMonthBtn: '◄ Previous', nextMonthBtn: 'Next ►',
@@ -384,7 +390,7 @@
                 habitsTitle: 'HABITUDES DE LA SEMAINE', todoTitle: 'TÂCHES DE LA SEMAINE', campaignsTitle: 'STATUT DES CAMPAGNES',
                 todaysFocus: 'FOCUS DU JOUR :', eventsHeader: 'ÉVÉNEMENTS', tasksHeader: 'TÂCHES',
                 campChecklistTitle: 'CHECKLIST DE CAMPAGNE', campNotesTitle: 'NOTES & BRIEFING',
-                backToPlannerBtn: '➔ Retour au PLANNER', btnEditTexts: '✏️ Textes', searchPlaceholder: '🔍 Rechercher...', btnPrint: 'Imprimer',
+                backToPlannerBtn: '➔ Retour au PLANNER', btnEditTexts: 'Textes', searchPlaceholder: '🔍 Rechercher...', btnPrint: 'Imprimer',
                 newHabitPlaceholder: '+ Nouvelle habitude...', newTodoPlaceholder: '+ Nouvelle tâche...',
                 newCampTaskPlaceholder: '+ Nouvelle tâche de campagne...', campNotesPlaceholder: 'Écrivez vos notes, briefing ou marques ici...',
                 noCampTasksMsg: 'Pas de tâches dans cette phase', habitsHeaderCol: 'HABITUDE', prevMonthBtn: '◄ Précédent', nextMonthBtn: 'Suivant ►',
@@ -392,7 +398,7 @@
                 btnSaveCustomTitle: 'Enregistrer tous les changements', modalGcalTitle: 'Connecter des comptes et calendriers',
                 modalGcalDesc: 'Choisissez le moyen le plus simple de synchroniser vos événements :',
                 gcalOpt1Lbl: '📂 Option 1 : Téléverser un fichier .ics', gcalOpt1Desc: 'Téléchargez le fichier .ics depuis Google Calendar et déposez-le ici :',
-                gcalOpt2Lbl: '🔗 Option 2 : Coller l'URL secrète iCal (.ics)', btnImportUrl: 'Importer URL', gcalSourcesLbl: 'SOURCES CONNECTÉES',
+                gcalOpt2Lbl: '🔗 Option 2 : Coller URL secrète iCal (.ics)', btnImportUrl: 'Importer URL', gcalSourcesLbl: 'SOURCES CONNECTÉES',
                 noSourcesMsg: 'Aucun calendrier importé pour le moment.', modalThemeTitle: 'Personnaliser les couleurs pastel', btnThemeDone: 'Terminé',
                 modalNewCampTitle: 'Créer une nouvelle campagne', newCampNamePlaceholder: 'Nom de la campagne...', newCampBrandsPlaceholder: 'Marques / Tags...',
                 btnSaveCamp: 'Créer la campagne',
@@ -826,9 +832,7 @@
         };
 
         function parseAndStoreIcalText(icalText) {
-            const lines = icalText.split(/
-|
-/);
+            const lines = icalText.split(/\r\n|\n/);
             let inEvent = false, currentSummary = '', currentDtStart = '', count = 0;
 
             lines.forEach(line => {
@@ -969,6 +973,63 @@
             };
             reader.readAsText(file);
         };
+
+        window.updateDayFocus = function(iso, val) { state.calendarData[iso].focus = val; saveState(); };
+        window.toggleTask = function(iso, id) { const t = state.calendarData[iso].tasks.find(x => x.id === id); if (t) { t.done = !t.done; saveState(); } };
+        window.deleteTask = function(iso, id) { state.calendarData[iso].tasks = state.calendarData[iso].tasks.filter(x => x.id !== id); saveState(); };
+        window.deleteEvent = function(iso, idx) { state.calendarData[iso].events.splice(idx, 1); saveState(); };
+        window.promptAddTask = function(iso) { const t = prompt('Tarea:'); if (t) { state.calendarData[iso].tasks.push({ id: 't_' + Date.now(), title: t, done: false }); saveState(); } };
+        window.promptAddEvent = function(iso) { const e = prompt('Evento:'); if (e) { state.calendarData[iso].events.push({ id: 'e_' + Date.now(), title: e }); saveState(); } };
+        window.toggleHabitCheck = function(h, d) { state.habits[h].checks[d] = !state.habits[h].checks[d]; saveState(); };
+        window.addHabit = function() { const i = document.getElementById('new-habit-input'); if (i.value.trim()) { state.habits.push({ id: 'h_' + Date.now(), name: i.value.trim(), checks: [false, false, false, false, false, false, false] }); i.value = ''; saveState(); } };
+        window.toggleWeeklyTodo = function(idx) { state.weeklyTodos[idx].done = !state.weeklyTodos[idx].done; saveState(); };
+        window.addWeeklyTodo = function() { const i = document.getElementById('new-todo-input'); if (i.value.trim()) { state.weeklyTodos.push({ id: 'wt_' + Date.now(), text: i.value.trim(), done: false }); i.value = ''; saveState(); } };
+        window.deleteWeeklyTodo = function(idx) { state.weeklyTodos.splice(idx, 1); saveState(); };
+
+        window.openGcalModal = () => { renderConnectedAccountsList(); document.getElementById('modal-gcal').classList.remove('hidden'); };
+        window.closeGcalModal = () => document.getElementById('modal-gcal').classList.add('hidden');
+        window.openCampaignModal = () => document.getElementById('modal-campaign').classList.remove('hidden');
+        window.closeCampaignModal = () => document.getElementById('modal-campaign').classList.add('hidden');
+        window.openThemeModal = () => document.getElementById('modal-theme').classList.remove('hidden');
+        window.closeThemeModal = () => document.getElementById('modal-theme').classList.add('hidden');
+
+        window.changeWeek = function(off) { currentDate.setDate(currentDate.getDate() + (off * 7)); renderAll(); };
+        window.goToToday = function() { currentDate = new Date(); renderAll(); };
+        window.setViewMode = function(m) {
+            currentView = m;
+            const weeklyView = document.getElementById('weekly-view'), monthlyView = document.getElementById('monthly-view'), weekNav = document.getElementById('week-nav-container'), btnWeekly = document.getElementById('btn-view-weekly'), btnMonthly = document.getElementById('btn-view-monthly');
+            if (m === 'weekly') {
+                if (weeklyView) weeklyView.classList.remove('hidden'); if (monthlyView) monthlyView.classList.add('hidden'); if (weekNav) weekNav.classList.remove('hidden');
+                if (btnWeekly) btnWeekly.className = "px-3 py-1.5 rounded-lg bg-white text-stone-800 shadow-xs font-bold"; if (btnMonthly) btnMonthly.className = "px-3 py-1.5 rounded-lg text-stone-500 hover:text-stone-800";
+            } else {
+                if (weeklyView) weeklyView.classList.add('hidden'); if (monthlyView) monthlyView.classList.remove('hidden'); if (weekNav) weekNav.classList.add('hidden');
+                if (btnWeekly) btnWeekly.className = "px-3 py-1.5 rounded-lg text-stone-500 hover:text-stone-800"; if (btnMonthly) btnMonthly.className = "px-3 py-1.5 rounded-lg bg-white text-stone-800 shadow-xs font-bold";
+                renderMonthlyView();
+            }
+            renderAll();
+        };
+
+        function changeMonth(offset) { currentMonthDate.setMonth(currentMonthDate.getMonth() + offset); renderMonthlyView(); }
+        function renderMonthlyView() {
+            const t = I18N[state.lang] || I18N['es'], year = currentMonthDate.getFullYear(), month = currentMonthDate.getMonth();
+            document.getElementById('monthly-title').textContent = `${t.months[month]} ${year}`;
+            document.getElementById('monthly-day-headers').innerHTML = t.dayShorts.map(s => `<div class="bg-stone-100 py-1.5 rounded-lg font-bold text-xs text-stone-600">${s}</div>`).join('');
+            const firstDayOfMonth = new Date(year, month, 1); let startingDay = firstDayOfMonth.getDay() - 1; if (startingDay === -1) startingDay = 6;
+            const daysInMonth = new Date(year, month + 1, 0).getDate(), gridContainer = document.getElementById('monthly-calendar-grid'); gridContainer.innerHTML = '';
+            for (let i = 0; i < startingDay; i++) { const emptyCell = document.createElement('div'); emptyCell.className = 'min-h-[90px] bg-stone-50/50 rounded-xl border border-stone-100/60 p-2 opacity-30'; gridContainer.appendChild(emptyCell); }
+            for (let dayNum = 1; dayNum <= daysInMonth; dayNum++) {
+                const dateObj = new Date(year, month, dayNum), isoStr = toISODateStr(dateObj), dayData = state.calendarData[isoStr] || { events: [], tasks: [] };
+                const cell = document.createElement('div'); cell.className = 'min-h-[90px] bg-white rounded-xl border border-stone-200/80 p-2 flex flex-col justify-between hover:shadow-md transition cursor-pointer';
+                cell.onclick = () => { currentDate = new Date(dateObj); setViewMode('weekly'); };
+                const isToday = dayNum === new Date().getDate() && month === new Date().getMonth() && year === new Date().getFullYear();
+                let itemsHtml = '<div class="space-y-1 overflow-hidden max-h-[60px]">';
+                (dayData.events || []).slice(0, 2).forEach(e => { itemsHtml += `<div class="text-[9px] font-semibold truncate rounded px-1 py-0.5 bg-amber-100 text-amber-900">📅 ${e.title}</div>`; });
+                (dayData.tasks || []).slice(0, 2).forEach(tk => { itemsHtml += `<div class="text-[9px] truncate rounded px-1 py-0.5 bg-stone-100 text-stone-700 ${tk.done ? 'line-through opacity-50' : ''}">✓ ${tk.title}</div>`; });
+                itemsHtml += '</div>';
+                cell.innerHTML = `<div class="flex justify-between items-center mb-1"><span class="font-bold text-xs ${isToday ? 'bg-amber-500 text-white w-5 h-5 rounded-full flex items-center justify-center' : 'text-stone-700'}">${dayNum}</span><span class="text-[9px] text-stone-400 font-bold">${(dayData.events || []).length + (dayData.tasks || []).length}</span></div>` + itemsHtml;
+                gridContainer.appendChild(cell);
+            }
+        }
 
         function renderAll() {
             const t = I18N[state.lang] || I18N['es'];
